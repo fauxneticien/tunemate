@@ -1,0 +1,35 @@
+/* ABCJS Plugin Styles */
+
+/* Highlight color for notes during playback */
+.abcjs-highlight {
+  fill: #0a9ecc;
+}
+
+/* Playback cursor line */
+.abcjs-cursor {
+  stroke: red;
+}
+
+/* Wrapper spacing */
+.abcjs-wrapper {
+  margin-bottom: 2em;
+}
+
+/* Paper/SVG container max width */
+.abcjs-wrapper [id^="paper-"] {
+  max-width: 1200px;
+}
+
+/* Activate audio button styling */
+.abcjs-wrapper .activate-audio {
+  margin-top: 0.5em;
+  padding: 0.5em 1em;
+  cursor: pointer;
+}
+
+/* Tablature checkbox label */
+.abcjs-wrapper label {
+  display: inline-block;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+}

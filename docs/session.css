@@ -1,0 +1,221 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  background: #fafafa;
+  color: #222;
+}
+
+.build-info {
+  position: fixed;
+  top: 0.5em;
+  right: 0.75em;
+  font-size: 0.8em;
+  color: #888;
+  background: rgba(250, 250, 250, 0.85);
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.build-info:empty {
+  display: none;
+}
+
+#main {
+  max-width: 900px;
+  margin: 2em auto;
+  padding: 0 1em;
+}
+
+h1 {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+.search-bar {
+  position: relative;
+  margin: 1.5em 0 2em;
+}
+
+#q {
+  width: 100%;
+  padding: 0.6em 0.8em;
+  font-size: 1.1em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;             /* same width as the input above */
+  z-index: 10;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.suggestions[hidden] {
+  display: none;
+}
+
+.suggestions li {
+  padding: 0.55em 0.8em;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1em;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.suggestions li:last-child {
+  border-bottom: none;
+}
+
+.suggestions li.active {
+  background: #eef6ff;
+}
+
+.suggestions .sugg-name {
+  font-weight: 500;
+}
+
+.suggestions .sugg-meta {
+  color: #888;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+#tune-view:empty {
+  display: none;
+}
+
+/* Each setting is its own card. The space between cards shows the page
+   background, giving a clear break. The tune header is plain text on the
+   page background — not a card. */
+.setting {
+  background: white;
+  padding: 1em 1.5em;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2em;
+}
+
+.tune-header {
+  margin-bottom: 1.5em;
+}
+
+.tune-header h2 {
+  margin: 0 0 0.25em;
+}
+
+.tune-header .tune-meta {
+  color: #666;
+  font-size: 0.95em;
+  margin: 0;
+}
+
+.tune-header .tune-aliases {
+  color: #888;
+  font-size: 0.9em;
+  margin: 0.5em 0 0;
+}
+
+/* All setting details (title, copy-link, ABC Tools) on one row.
+   ABC Tools link is pushed to the right via margin-left: auto. */
+.setting-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-bottom: 0.5em;
+}
+
+.setting-header h3 {
+  margin: 0;
+  font-size: 1em;
+  color: #444;
+  font-weight: normal;
+}
+
+.setting-header .abctools-link {
+  margin-left: auto;
+}
+
+.copy-link {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.25em;
+  margin-left: 0.35em;
+  color: #aaa;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.copy-link:hover {
+  color: #0066cc;
+}
+
+.copy-link.copied {
+  color: #2a9d2a;
+}
+
+.copy-link.copy-failed {
+  color: #c0392b;
+}
+
+.copy-note {
+  margin-left: 0.25em;
+  font-size: 0.85em;
+  color: #2a9d2a;
+  vertical-align: middle;
+}
+
+.copy-link.copy-failed + .copy-note {
+  color: #c0392b;
+}
+
+.copy-note[hidden] {
+  display: none;
+}
+
+.abctools-link {
+  font-size: 0.85em;
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.abctools-link:hover {
+  text-decoration: underline;
+}
+
+/* Session-scoped paper width (matches the plugin default; explicit knob
+   so it's easy to tweak alongside the per-render scale in session.js). */
+#tune-view .abcjs-wrapper [id^="paper-"] {
+  max-width: 1200px;
+}
+
+/* Reorder the abcjs wrapper so audio controls sit above the notation.
+   The plugin keeps its DOM order (label, paper, audio, button); we
+   re-stack visually with flex `order`. The Show Tabs checkbox is hidden
+   here — tabs are always on in the session view. */
+#tune-view .abcjs-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+#tune-view .abcjs-wrapper > label                  { display: none; }
+#tune-view .abcjs-wrapper > [id^="audio-"]         { order: 1; }
+#tune-view .abcjs-wrapper > .activate-audio        { order: 2; }
+#tune-view .abcjs-wrapper > [id^="paper-"]         { order: 3; }

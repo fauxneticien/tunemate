@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  serve:
+    desc: Serve docs/ locally on http://localhost:8000
+    cmds:
+      - python3 -m http.server -d docs 8000
+
+  download-data:
+    desc: Download the latest TheSession-data snapshot into tmp/TheSession-data-main/
+    cmds:
+      - mkdir -p tmp
+      - curl -L https://github.com/adactio/TheSession-data/archive/refs/heads/main.tar.gz | tar xz -C tmp
+
+  build-data:
+    desc: Regenerate docs/{meta,search-index,tunes/*}.json from CSVs in tmp/TheSession-data-main/
+    vars:
+      LIMIT: '{{.LIMIT | default "0"}}'
+    cmds:
+      - python3 build/build_session_data.py --limit {{.LIMIT}}
+      - cd build && npm install --silent --no-audit --no-fund
+      - node build/build_search_index.mjs

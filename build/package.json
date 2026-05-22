@@ -1,0 +1,10 @@
+{
+  "name": "session-tabs-build",
+  "private": true,
+  "type": "module",
+  "description": "Build-time helpers for session-tabs. Not served — only used by build/build_search_index.mjs.",
+  "dependencies": {
+    "minisearch": "^7.0.0",
+    "pako": "^2.1.0"
+  }
+}

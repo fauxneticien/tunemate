@@ -1,0 +1,7 @@
+__pycache__
+build/node_modules/
+build/package-lock.json
+tmp/*
+!tmp/.gitkeep
+docs/search-docs.json
+.DS_Store

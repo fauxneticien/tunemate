@@ -1,0 +1,19 @@
+{
+  "name": "abcjs",
+  "version": "1.0.0",
+  "description": "ABC music notation rendering with audio playback and violin tablature",
+  "codeblock": "abcjs",
+  "rendering": "client",
+  "cdn": [
+    {
+      "type": "script",
+      "src": "https://cdn.jsdelivr.net/npm/abcjs@6.6.0/dist/abcjs-basic-min.js"
+    },
+    {
+      "type": "stylesheet",
+      "href": "https://cdn.jsdelivr.net/npm/abcjs@6.6.0/abcjs-audio.min.css"
+    }
+  ],
+  "entrypoint": "abcjs.js",
+  "styles": "abcjs.css"
+}

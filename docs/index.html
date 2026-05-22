@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Tabs</title>
+
+<!-- abcjs from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.6.0/dist/abcjs-basic-min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/abcjs@6.6.0/abcjs-audio.min.css" rel="stylesheet">
+
+<!-- Plugin styles -->
+<link href="./plugins/abcjs/abcjs.css" rel="stylesheet">
+<link href="./session.css" rel="stylesheet">
+
+<!-- Importmap lets the viewer load MiniSearch as an ES module from CDN -->
+<script type="importmap">
+{
+  "imports": {
+    "minisearch": "https://cdn.jsdelivr.net/npm/minisearch@7/+esm",
+    "pako": "https://cdn.jsdelivr.net/npm/pako@2/+esm"
+  }
+}
+</script>
+</head>
+<body>
+<div id="build-info" class="build-info" title=""></div>
+<div id="main">
+  <h1>Session Tabs</h1>
+  Tabs view for tunes from thesession.org
+
+  <div class="search-bar">
+    <input id="q" type="search"
+           placeholder="Search by name or alias, then press Enter…"
+           autocomplete="off" autofocus>
+    <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+  </div>
+
+  <div id="tune-view"></div>
+</div>
+
+<script type="module" src="./session.js"></script>
+</body>
+</html>

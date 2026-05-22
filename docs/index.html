@@ -9,8 +9,12 @@
 <script src="https://cdn.jsdelivr.net/npm/abcjs@6.6.0/dist/abcjs-basic-min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/abcjs@6.6.0/abcjs-audio.min.css" rel="stylesheet">
 
+<!-- Font Awesome (free) for menubar + bookmark + trash icons -->
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6/css/all.min.css" rel="stylesheet">
+
 <!-- Plugin styles -->
 <link href="./plugins/abcjs/abcjs.css" rel="stylesheet">
+<link href="./plugins/folkfriend/ff-search.css" rel="stylesheet">
 <link href="./session.css" rel="stylesheet">
 
 <!-- Importmap lets the viewer load MiniSearch as an ES module from CDN -->
@@ -24,6 +28,14 @@
 </script>
 </head>
 <body>
+<nav id="menubar" class="menubar" aria-label="Primary">
+  <button id="nav-home" type="button" aria-label="Home" title="Home">
+    <i class="fa-solid fa-home"></i>
+  </button>
+  <button id="nav-bookmarks" type="button" aria-label="Bookmarks" title="Bookmarks">
+    <i class="fa-solid fa-bookmark"></i>
+  </button>
+</nav>
 <div id="build-info" class="build-info" title=""></div>
 <div id="main">
   <h1>Session Tabs</h1>
@@ -33,11 +45,39 @@
     <input id="q" type="search"
            placeholder="Search by name or alias, then press Enter…"
            autocomplete="off" autofocus>
+    <button id="audio-search-btn" type="button"
+            aria-label="Search by audio"
+            title="Search by humming or uploading audio">🎤</button>
     <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
   </div>
 
   <div id="tune-view"></div>
 </div>
+
+<dialog id="ff-modal" class="ff-modal">
+  <div class="ff-modal-inner">
+    <header class="ff-modal-header">
+      <h2 id="ff-modal-title">Search by audio</h2>
+      <button id="ff-cancel" type="button" class="ff-close" aria-label="Close">&times;</button>
+    </header>
+    <section id="ff-audio-pane">
+      <p class="ff-hint">Hum, sing, or play ~10 seconds of a tune.</p>
+      <div class="ff-controls">
+        <button id="ff-record" type="button">Record (10s)</button>
+        <label class="ff-upload-label">
+          Upload audio file
+          <input id="ff-upload" type="file" accept="audio/*" hidden>
+        </label>
+      </div>
+      <div id="ff-status" class="ff-status" aria-live="polite"></div>
+      <audio id="ff-audio" class="ff-audio" controls preload="auto" hidden></audio>
+      <ul id="ff-results" class="ff-results" role="list"></ul>
+    </section>
+    <section id="ff-bookmarks-pane" hidden>
+      <ul id="ff-bookmarks-list" class="ff-results" role="list"></ul>
+    </section>
+  </div>
+</dialog>
 
 <script type="module" src="./session.js"></script>
 </body>

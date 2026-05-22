@@ -1,0 +1,11 @@
+{
+  "name": "folkfriend",
+  "version": "1.0.0",
+  "description": "Audio-to-tune search via FolkFriend (WASM). Transcribes a sung/played clip into a contour and ranks thesession.org tunes by match score.",
+  "rendering": "client",
+  "entrypoint": "ff-search.js",
+  "styles": "ff-search.css",
+  "wasm": "folkfriend_bg.wasm",
+  "index": "tune-index.json",
+  "source": "https://github.com/TomWyllie/folkfriend"
+}

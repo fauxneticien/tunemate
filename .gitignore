@@ -5,3 +5,4 @@ tmp/*
 !tmp/.gitkeep
 docs/search-docs.json
 .DS_Store
+.claude

@@ -1,0 +1,199 @@
+/* FolkFriend audio-search plugin styles. */
+
+#audio-search-btn {
+  font-size: 1.2em;
+  padding: 0 0.7em;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#audio-search-btn:hover,
+#audio-search-btn:focus-visible {
+  background: #f0f7ff;
+  border-color: #88a;
+}
+
+/* Left-side hovering panel. Opened via dialog.show() (NOT showModal):
+   no backdrop, page behind stays interactive, panel persists across
+   result-clicks so the user can pick a different match on a miss. */
+.ff-modal {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  padding: 0;
+  width: min(28em, 90vw);
+  max-width: none;
+  max-height: none;
+  height: 100vh;
+  border: none;
+  border-right: 1px solid #ccc;
+  border-radius: 0;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.18);
+  background: white;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.ff-modal-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1em 1.25em 1.25em;
+  box-sizing: border-box;
+}
+
+.ff-modal-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+.ff-modal h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.ff-close {
+  font-size: 1.4em;
+  line-height: 1;
+  padding: 0 0.4em;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+}
+
+.ff-close:hover,
+.ff-close:focus-visible {
+  color: #000;
+}
+
+.ff-hint {
+  color: #666;
+  margin: 0 0 0.75em;
+  font-size: 0.95em;
+}
+
+.ff-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+}
+
+.ff-controls button,
+.ff-upload-label {
+  padding: 0.5em 0.9em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ff-controls button:hover,
+.ff-upload-label:hover {
+  background: #f0f7ff;
+}
+
+.ff-status {
+  min-height: 1.4em;
+  font-size: 0.9em;
+  color: #555;
+  margin: 0.75em 0 0.5em;
+  word-break: break-word;
+}
+
+.ff-audio {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.5em;
+}
+
+.ff-audio[hidden] {
+  display: none;
+}
+
+.ff-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid #eee;
+}
+
+.ff-results:empty {
+  border-top: none;
+}
+
+.ff-result {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name action" "meta action";
+  align-items: center;
+  column-gap: 0.5em;
+  row-gap: 0.1em;
+  padding: 0.55em 0.2em;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.ff-result-name { grid-area: name; }
+.ff-result-meta { grid-area: meta; }
+
+.bm-trash {
+  grid-area: action;
+  background: none;
+  border: none;
+  padding: 0.4em 0.5em;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 0.95em;
+  line-height: 1;
+  border-radius: 3px;
+}
+
+.bm-trash:hover {
+  background: #fff;
+  color: #c33;
+}
+
+.ff-empty {
+  padding: 1em 0.2em;
+  color: #888;
+  font-size: 0.9em;
+  text-align: center;
+  list-style: none;
+}
+
+.ff-result:hover,
+.ff-result:focus-visible {
+  background: #eef6ff;
+  outline: none;
+}
+
+.ff-result.ff-result-active {
+  background: #cfe6ff;
+  border-left: 3px solid #0a9ecc;
+  padding-left: calc(0.2em - 3px);
+}
+
+.ff-result-name {
+  font-weight: 500;
+}
+
+.ff-result-meta {
+  color: #888;
+  font-size: 0.85em;
+}
+
+/* Inline colour is set per-row from scoreColour(); the gradient is
+   #CC1111 → #11CC11 clamped to [0, 0.7]. */
+.ff-result-score {
+  font-weight: 500;
+}

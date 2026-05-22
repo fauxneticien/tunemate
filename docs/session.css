@@ -18,6 +18,52 @@ body {
   pointer-events: none;
 }
 
+.menubar {
+  position: fixed;
+  top: 0.5em;
+  left: 0.75em;
+  z-index: 30;
+  display: flex;
+  gap: 0.4em;
+}
+
+.menubar button {
+  background: rgba(250, 250, 250, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 0.25em 0.55em;
+  font-size: 0.9em;
+  color: #555;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.menubar button:hover,
+.menubar button:focus-visible {
+  background: #fff;
+  color: #000;
+  border-color: #88a;
+  outline: none;
+}
+
+.bookmark-btn {
+  background: none;
+  border: none;
+  padding: 0.15em 0.35em;
+  color: #999;
+  cursor: pointer;
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+.bookmark-btn:hover {
+  color: #444;
+}
+
+.bookmark-btn.is-bookmarked {
+  color: #d4a000;
+}
+
 .build-info:empty {
   display: none;
 }
@@ -37,15 +83,19 @@ h1 {
 .search-bar {
   position: relative;
   margin: 1.5em 0 2em;
+  display: flex;
+  align-items: stretch;
+  gap: 0.5em;
 }
 
 #q {
-  width: 100%;
+  flex: 1;
   padding: 0.6em 0.8em;
   font-size: 1.1em;
   border: 1px solid #ccc;
   border-radius: 4px;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .suggestions {

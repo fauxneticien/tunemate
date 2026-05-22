@@ -20,3 +20,9 @@ tasks:
       - python3 build/build_session_data.py --limit {{.LIMIT}}
       - cd build && npm install --silent --no-audit --no-fund
       - node build/build_search_index.mjs
+
+  download-folkfriend-index:
+    desc: Refresh docs/plugins/folkfriend/tune-index.json from upstream (~34 MB)
+    cmds:
+      - curl -L -o docs/plugins/folkfriend/tune-index.json
+          https://folkfriend-app-data.web.app/folkfriend-non-user-data.json

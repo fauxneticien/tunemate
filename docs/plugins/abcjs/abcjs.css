@@ -33,3 +33,20 @@
   margin-bottom: 0.5em;
   cursor: pointer;
 }
+
+/* Measure-range selection highlight.
+   abcjs sets note colour as inline SVG attributes (fill/stroke on
+   <path>/<text>), which beat regular CSS — !important is mandatory.
+   fill paints note heads, rests, tab numbers; stroke paints stems,
+   beams, ledger lines, ties. Drop either and half the elements stay
+   black. */
+.abcjs-wrapper [id^="paper-"] .abcjs-mm-selected,
+.abcjs-wrapper [id^="paper-"] .abcjs-mm-selected * {
+  fill: var(--abcjs-mm-selected-color, #0969da) !important;
+  stroke: var(--abcjs-mm-selected-color, #0969da) !important;
+}
+
+/* The staff is clickable — make that discoverable. */
+.abcjs-wrapper [id^="paper-"] {
+  cursor: pointer;
+}

@@ -251,6 +251,76 @@ h1 {
   text-decoration: underline;
 }
 
+/* Snippet (measure-range) controls — sit after the full ABC Tools link
+   on the right side of the setting header. Hidden until a selection
+   exists; revealed by toggling the `hidden` attribute. */
+.snippet-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-left: 0.6em;
+}
+
+/* Specificity bump: `display: inline-flex` above outranks the UA's
+   `[hidden] { display: none }` rule, so without this the controls
+   stay visible even when the `hidden` attribute is set. */
+.snippet-controls[hidden] {
+  display: none;
+}
+
+.snippet-range {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8em;
+  color: #555;
+  background: #f1f3f5;
+  padding: 0.1em 0.45em;
+  border-radius: 3px;
+}
+
+.snippet-clear {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.25em;
+  color: #aaa;
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.snippet-clear:hover {
+  color: #444;
+}
+
+/* Settings modal pane */
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 1em 0 0.5em;
+}
+
+.settings-label {
+  min-width: 5em;
+  font-weight: 500;
+}
+
+.settings-row input[type="range"] {
+  flex: 1;
+}
+
+.settings-value {
+  min-width: 3.5em;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #555;
+}
+
+.settings-hint {
+  color: #666;
+  font-size: 0.85em;
+  margin: 0.25em 0 0;
+}
+
 /* Session-scoped paper width (matches the plugin default; explicit knob
    so it's easy to tweak alongside the per-render scale in session.js). */
 #tune-view .abcjs-wrapper [id^="paper-"] {

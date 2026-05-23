@@ -38,6 +38,29 @@ let activeIdx = -1;               // highlighted suggestion index, -1 = none
 let renderIdx = 0;                // monotonic id for abcjs render targets
 let openSeq = 0;                  // bumps on each openTune; cancels in-flight renders
 
+// Measure-range selection. At most one across the whole tune view —
+// clicking a measure in a different setting clears the previous one,
+// which keeps the URL's start/end unambiguous against the #setting_id
+// in the fragment.
+//   selection = { settingId, lo, hi }    // 1-indexed, inclusive
+//   selection = null                     // no active selection
+let selection = null;
+
+// Per-setting bookkeeping for the currently-open tune. Built up while
+// staging the tune view, read by click handlers, the deep-link applier,
+// and onAfterRender (for re-applying highlight after Show Tabs toggle).
+//   tune                — the tune object loaded from tunes/<id>.json
+//   settingRecords      — Map<setting_id, {
+//       setting,           // the setting object from tune.settings
+//       measures,          // string[] from splitMeasures(setting.abc)
+//       paperId,           // 'paper-<idx>' on the rendered abcjs wrapper
+//       controlsEl,        // .snippet-controls container element
+//       rangeEl,           // .snippet-range label inside it
+//       linkEl,            // .abctools-snippet-link inside it
+//     }>
+let currentTune = null;
+let settingRecords = new Map();
+
 // --- Boot ----------------------------------------------------------------
 
 async function boot() {
@@ -63,12 +86,16 @@ async function boot() {
   qInput.placeholder = 'Search by name or alias, then press Enter…';
   qInput.focus();
 
-  // Deep-link: ?tune=<tune_id>[#<setting_id>]
+  // Deep-link: ?tune=<tune_id>[&start=<lo>&end=<hi>][#<setting_id>]
   const view = parseTuneParam();
   if (view) {
     const m = metaById.get(view.tuneId);
     if (m) qInput.value = displayName(m.name);
-    openTune(view.tuneId, view.settingId, { pushHistory: false });
+    openTune(view.tuneId, view.settingId, {
+      pushHistory: false,
+      start: view.start,
+      end: view.end,
+    });
   }
 }
 
@@ -82,11 +109,14 @@ function showBuildInfo(builtAt) {
 
 // --- URL state -----------------------------------------------------------
 //
-// URL format: ?tune=<tune_id>#<setting_id>
+// URL format: ?tune=<tune_id>[&start=<lo>&end=<hi>]#<setting_id>
 //   - tune_id selects which tune JSON to fetch
 //   - the URL fragment is the bare setting_id, matching the h3 anchor
 //     rendered inside the tune view, so the browser can scroll to it
 //     natively (and copy/share links land on the right setting).
+//   - start/end are optional 1-indexed measure numbers scoped to the
+//     setting in the fragment. Both present → highlight measures lo..hi;
+//     only start present → single-measure selection (end = start).
 //
 // Old ?view=N.M links are no longer supported — keep this in mind if
 // any bookmarks need migrating.
@@ -98,23 +128,45 @@ function parseTuneParam() {
   const tuneId = parseInt(tuneStr, 10);
   if (Number.isNaN(tuneId)) return null;
   const hash = window.location.hash.replace(/^#/, '');
-  const settingId = hash ? parseInt(hash, 10) : null;
-  return { tuneId, settingId: Number.isNaN(settingId) ? null : settingId };
+  const settingIdRaw = hash ? parseInt(hash, 10) : null;
+  const settingId = Number.isNaN(settingIdRaw) ? null : settingIdRaw;
+
+  const startRaw = params.get('start');
+  const endRaw = params.get('end');
+  let start = startRaw != null ? parseInt(startRaw, 10) : null;
+  let end = endRaw != null ? parseInt(endRaw, 10) : null;
+  if (Number.isNaN(start)) start = null;
+  if (Number.isNaN(end)) end = null;
+  // Allow `?start=N` alone (single measure); ignore stray `end` without start.
+  if (start != null && end == null) end = start;
+  if (start == null) end = null;
+
+  return { tuneId, settingId, start, end };
 }
 
-function setTuneParam(tuneId, settingId, push) {
+function setTuneParam(tuneId, settingId, opts = {}) {
+  const { start = null, end = null, push = false } = opts;
   const url = new URL(window.location);
   url.search = '';
   url.searchParams.set('tune', String(tuneId));
+  if (start != null && end != null) {
+    url.searchParams.set('start', String(start));
+    // Only emit end when it differs — keeps single-measure URLs tidy.
+    if (end !== start) url.searchParams.set('end', String(end));
+  }
   url.hash = settingId ? `#${settingId}` : '';
   const method = push ? 'pushState' : 'replaceState';
-  history[method]({ tuneId, settingId }, '', url);
+  history[method]({ tuneId, settingId, start, end }, '', url);
 }
 
-function buildShareUrl(tuneId, settingId) {
+function buildShareUrl(tuneId, settingId, sel = null) {
   const url = new URL(window.location);
   url.search = '';
   url.searchParams.set('tune', String(tuneId));
+  if (sel && sel.lo != null && sel.hi != null) {
+    url.searchParams.set('start', String(sel.lo));
+    if (sel.hi !== sel.lo) url.searchParams.set('end', String(sel.hi));
+  }
   url.hash = settingId ? `#${settingId}` : '';
   return url.href;
 }
@@ -122,10 +174,17 @@ function buildShareUrl(tuneId, settingId) {
 window.addEventListener('popstate', () => {
   const view = parseTuneParam();
   if (view) {
-    openTune(view.tuneId, view.settingId, { pushHistory: false });
+    openTune(view.tuneId, view.settingId, {
+      pushHistory: false,
+      start: view.start,
+      end: view.end,
+    });
   } else {
     tuneViewEl.innerHTML = '';
     ++openSeq;  // cancel any in-flight render
+    selection = null;
+    currentTune = null;
+    settingRecords = new Map();
   }
 });
 
@@ -267,6 +326,7 @@ function openAudioSearchModal(ff) {
   document.getElementById('ff-modal-title').textContent = 'Search by audio';
   document.getElementById('ff-audio-pane').hidden = false;
   document.getElementById('ff-bookmarks-pane').hidden = true;
+  document.getElementById('ff-settings-pane').hidden = true;
   const recordBtn = document.getElementById('ff-record');
   const uploadInput = document.getElementById('ff-upload');
   const cancelBtn = document.getElementById('ff-cancel');
@@ -432,13 +492,139 @@ function openAudioSearchModal(ff) {
   modal.show();
 }
 
+// --- Selection (measure-range highlight + snippet share) -----------------
+//
+// abcjs emits two parallel measure-class systems on every note:
+//   abcjs-m{N}   — line-local, resets per staff row (DO NOT use)
+//   abcjs-mm{N}  — tune-global, monotonic across the whole piece
+// We use abcjs-mm exclusively. Same trap on analysis.measure (line-local)
+// — we parse the global index off the classes string in the plugin.
+
+// Element-type filter so the highlight class only lands on visible
+// musical elements. abcjs-mm{N} is also on staff lines, barlines, time
+// signatures etc., and selecting all of them paints the whole staff.
+const HIGHLIGHTABLE = ['abcjs-note', 'abcjs-beam-elem', 'abcjs-tab-number'];
+
+function clearHighlight() {
+  document.querySelectorAll('#tune-view .abcjs-mm-selected')
+    .forEach(el => el.classList.remove('abcjs-mm-selected'));
+}
+
+// Apply selection highlight to the given setting's paper. mm indices are
+// 0-indexed in abcjs; selection.lo/hi are 1-indexed.
+function applyHighlight(settingId) {
+  const rec = settingRecords.get(settingId);
+  if (!rec) return;
+  const paper = document.getElementById(rec.paperId);
+  if (!paper) return;
+  const { lo, hi } = selection;
+  for (let i = lo - 1; i <= hi - 1; i++) {
+    paper.querySelectorAll(`.abcjs-mm${i}`).forEach(el => {
+      if (HIGHLIGHTABLE.some(cls => el.classList.contains(cls))) {
+        el.classList.add('abcjs-mm-selected');
+      }
+    });
+  }
+}
+
+// Push the current `selection` into each setting's audio plugin so that
+// playback follows the highlighted range. Called from every selection
+// mutation (click, clear, deep-link applier).
+function syncSnippetAudio() {
+  for (const [sid, rec] of settingRecords) {
+    if (!rec.audioApi || !rec.audioApi.setSynthTune) continue;
+    if (selection && selection.settingId === sid) {
+      const snippetAbc = buildSnippetAbc(
+        currentTune, rec.setting, rec.measures, selection.lo, selection.hi);
+      const snippetVisualObj = rec.audioApi.parseAbc(snippetAbc);
+      rec.audioApi.setSynthTune(snippetVisualObj, { lo: selection.lo });
+    } else {
+      // Any setting not currently selected plays the full tune.
+      rec.audioApi.setSynthTune(null);
+    }
+  }
+}
+
+function updateSnippetControls() {
+  // `selection` is the single source of truth. Each setting has one ABC
+  // Tools link that we mutate in place — no selection means full setting,
+  // active selection means just those measures. The [m. lo–hi] badge and
+  // × button only show on the actively-selected setting.
+  const activeId = selection ? selection.settingId : null;
+  for (const [sid, rec] of settingRecords) {
+    if (sid === activeId) continue;
+    rec.controlsEl.hidden = true;
+    rec.abctoolsLinkEl.href = rec.fullAbcToolsHref;
+  }
+  if (!selection) return;
+  const rec = settingRecords.get(activeId);
+  if (!rec) return;
+  const { lo, hi } = selection;
+  rec.rangeEl.textContent = lo === hi ? `m. ${lo}` : `m. ${lo}–${hi}`;
+  const snippetAbc = buildSnippetAbc(currentTune, rec.setting, rec.measures, lo, hi);
+  rec.abctoolsLinkEl.href = abcToolsUrl(displayName(currentTune.name), snippetAbc);
+  rec.controlsEl.hidden = false;
+}
+
+// Called by the abcjs plugin when a note is clicked. measureIdx0 is the
+// tune-global mm index (0-indexed); convert to 1-indexed lo/hi here.
+// MWE state machine: 1st click = single, 2nd click = range, 3rd click =
+// reset to single. Cross-setting clicks reset.
+function handleMeasureClick(settingId, measureIdx0) {
+  const m = measureIdx0 + 1;
+  if (!selection || selection.settingId !== settingId) {
+    selection = { settingId, lo: m, hi: m };
+  } else if (selection.lo === selection.hi) {
+    selection = {
+      settingId,
+      lo: Math.min(selection.lo, m),
+      hi: Math.max(selection.lo, m),
+    };
+  } else {
+    selection = { settingId, lo: m, hi: m };
+  }
+  clearHighlight();
+  applyHighlight(settingId);
+  updateSnippetControls();
+  syncSnippetAudio();
+  if (currentTune) {
+    setTuneParam(currentTune.tune_id, settingId,
+      { start: selection.lo, end: selection.hi, push: true });
+  }
+}
+
+function clearSelection() {
+  if (!selection) return;
+  const settingId = selection.settingId;
+  selection = null;
+  clearHighlight();
+  updateSnippetControls();
+  syncSnippetAudio();
+  if (currentTune) {
+    setTuneParam(currentTune.tune_id, settingId, { push: true });
+  }
+}
+
+// Called by the abcjs plugin after every render (including the Show Tabs
+// re-render which discards .abcjs-mm-selected). Reapplies highlight from
+// state if it belongs to this setting.
+function reapplyHighlightFor(settingId) {
+  if (!selection || selection.settingId !== settingId) return;
+  applyHighlight(settingId);
+}
+
 // --- Tune view -----------------------------------------------------------
 
 async function openTune(id, scrollToSettingId = null, opts = {}) {
-  const { pushHistory = true } = opts;
+  const { pushHistory = true, start = null, end = null } = opts;
   const mySeq = ++openSeq;
 
-  if (pushHistory) setTuneParam(id, scrollToSettingId, /*push=*/true);
+  // Reset any active selection — it's scoped to the previous tune view.
+  selection = null;
+
+  if (pushHistory) {
+    setTuneParam(id, scrollToSettingId, { start, end, push: true });
+  }
 
   tuneViewEl.innerHTML = '<p>Loading tune…</p>';
   let tune;
@@ -468,8 +654,10 @@ async function openTune(id, scrollToSettingId = null, opts = {}) {
   tuneViewEl.appendChild(header);
 
   // Stage all DOM placeholders first so the layout reflows once.
-  const codeEls = [];
-  let targetCode = null;
+  currentTune = tune;
+  settingRecords = new Map();
+  const stagedRenders = [];  // [{ code, paperIdx, settingId }]
+  let targetEntry = null;
   for (const s of tune.settings) {
     const section = document.createElement('section');
     section.className = 'setting';
@@ -495,8 +683,15 @@ async function openTune(id, scrollToSettingId = null, opts = {}) {
     link.target = '_blank';
     link.rel = 'noopener';
     link.textContent = 'Open in ABC Tools ↗';
-    link.href = abcToolsUrl(displayName(tune.name), abc);
+    const fullAbcToolsHref = abcToolsUrl(displayName(tune.name), abc);
+    link.href = fullAbcToolsHref;
     headerRow.appendChild(link);
+
+    // Snippet controls — [m. lo–hi] badge + × clear button. Hidden until
+    // the user clicks a measure; the link above mutates between full
+    // setting and snippet based on `selection`. See updateSnippetControls.
+    const controls = makeSnippetControls();
+    headerRow.appendChild(controls.el);
 
     section.appendChild(headerRow);
 
@@ -507,10 +702,25 @@ async function openTune(id, scrollToSettingId = null, opts = {}) {
     pre.appendChild(code);
     section.appendChild(pre);
     tuneViewEl.appendChild(section);
-    codeEls.push(code);
+
+    // Reserve the abcjs render idx now (not at render time) so paper-N
+    // is predictable per setting — handleMeasureClick / onAfterRender
+    // need to resolve setting_id → paper-N before the render call.
+    const paperIdx = renderIdx++;
+    stagedRenders.push({ code, paperIdx, settingId: s.setting_id });
+
+    settingRecords.set(s.setting_id, {
+      setting: s,
+      measures: splitMeasures(s.abc),
+      paperId: `paper-${paperIdx}`,
+      controlsEl: controls.el,
+      rangeEl: controls.rangeEl,
+      abctoolsLinkEl: link,
+      fullAbcToolsHref,
+    });
 
     if (scrollToSettingId && s.setting_id === scrollToSettingId) {
-      targetCode = code;
+      targetEntry = stagedRenders[stagedRenders.length - 1];
     }
   }
 
@@ -521,14 +731,36 @@ async function openTune(id, scrollToSettingId = null, opts = {}) {
   }
 
   // Render target first so a deep-link is usable immediately, then the rest.
-  const renderOrder = targetCode
-    ? [targetCode, ...codeEls.filter(c => c !== targetCode)]
-    : codeEls;
+  const renderOrder = targetEntry
+    ? [targetEntry, ...stagedRenders.filter(e => e !== targetEntry)]
+    : stagedRenders;
 
-  for (const code of renderOrder) {
+  for (const entry of renderOrder) {
     await new Promise(r => requestAnimationFrame(r));
     if (mySeq !== openSeq) return;
-    abcjs.render(code, renderIdx++);
+    const sid = entry.settingId;
+    const api = abcjs.render(entry.code, entry.paperIdx, {
+      onMeasureClick: (m0) => handleMeasureClick(sid, m0),
+      onAfterRender: () => reapplyHighlightFor(sid),
+      getTempoPct,
+      getAutoLoop,
+    });
+    const rec = settingRecords.get(sid);
+    if (rec) rec.audioApi = api || null;
+  }
+
+  // Apply deep-link selection AFTER all renders so the highlight survives
+  // the targeted render and is consistent if the user toggles tabs.
+  if (mySeq !== openSeq) return;
+  if (start != null && end != null && scrollToSettingId
+      && settingRecords.has(scrollToSettingId)) {
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    selection = { settingId: scrollToSettingId, lo, hi };
+    clearHighlight();
+    applyHighlight(scrollToSettingId);
+    updateSnippetControls();
+    syncSnippetAudio();
   }
 
   // Final scroll to the targeted setting, AFTER every abcjs render
@@ -540,6 +772,26 @@ async function openTune(id, scrollToSettingId = null, opts = {}) {
     const targetH3 = document.getElementById(String(scrollToSettingId));
     if (targetH3) targetH3.scrollIntoView();  // default = instant, no animation
   }
+}
+
+function makeSnippetControls() {
+  const el = document.createElement('span');
+  el.className = 'snippet-controls';
+  el.hidden = true;
+
+  const rangeEl = document.createElement('span');
+  rangeEl.className = 'snippet-range';
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'snippet-clear';
+  clearBtn.type = 'button';
+  clearBtn.setAttribute('aria-label', 'Clear measure selection');
+  clearBtn.title = 'Clear selection';
+  clearBtn.textContent = '×';
+  clearBtn.addEventListener('click', clearSelection);
+
+  el.append(rangeEl, clearBtn);
+  return { el, rangeEl };
 }
 
 function makeCopyLinkButton(tuneId, settingId) {
@@ -559,7 +811,12 @@ function makeCopyLinkButton(tuneId, settingId) {
   note.className = 'copy-note';
   note.hidden = true;
   btn.addEventListener('click', async () => {
-    const url = buildShareUrl(tuneId, settingId);
+    // Include the active selection in the copied URL when it's pinned
+    // to this setting, so a shared link reproduces the highlight.
+    const sel = (selection && selection.settingId === settingId)
+      ? { lo: selection.lo, hi: selection.hi }
+      : null;
+    const url = buildShareUrl(tuneId, settingId, sel);
     const ok = await copyText(url);
     btn.classList.toggle('copied', ok);
     btn.classList.toggle('copy-failed', !ok);
@@ -639,18 +896,152 @@ function displayName(name) {
   return m ? 'The ' + trimmed.slice(0, m.index) : trimmed;
 }
 
+// ABC mode like "Edorian" → "Edor", "Gmajor" → "Gmaj". abcjs's K: parser
+// accepts the short forms; the long forms in TheSession data confuse it.
+function modeForAbc(mode) {
+  return (mode || 'C')
+    .replace(/major$/i, 'maj')
+    .replace(/minor$/i, 'min')
+    .replace(/dorian$/i, 'dor')
+    .replace(/mixolydian$/i, 'mix');
+}
+
 function buildAbc(tune, setting) {
-  // ABC mode like "Edorian" → "Edor", "Gmajor" → "Gmaj"
-  const mode = (setting.mode || tune.mode || 'C').replace(/major$/i, 'maj').replace(/minor$/i, 'min').replace(/dorian$/i, 'dor').replace(/mixolydian$/i, 'mix');
   return [
     'X: 1',
     `T: ${tune.name}`,
     `R: ${tune.type}`,
     `M: ${tune.meter || '4/4'}`,
     'L: 1/8',
-    `K: ${mode}`,
+    `K: ${modeForAbc(setting.mode || tune.mode)}`,
     setting.abc,
   ].join('\n');
+}
+
+// Split an ABC body into one string per measure. Naïve barline split —
+// fine for TheSession's single-voice trad tunes (the dataset we ship),
+// where every bar is delimited by one of: |, ||, |:, :|, ::. Known to
+// mis-count on multi-voice tunes (V: lines interleave), inline fields
+// adjacent to bars (e.g. [M:3/4]|), and first/second endings (|1, |2)
+// which produce phantom "measures" of just "1" / "2". If any of those
+// arise, swap to abcjs's visualObj.lines[].staff[].voices[] for
+// structured measure spans.
+//
+// Note: abcjs counts measures linearly through the *written* score —
+// repeats (|:…:|) are NOT unrolled. A 16-bar tune that plays as 32
+// will still have abcjs-mm0..15 and snippet measures 1..16.
+function splitMeasures(abcBody) {
+  return abcBody.split(/\|+:?|:?\|+/).filter(m => m.trim());
+}
+
+// Build snippet ABC for measures [lo, hi] (1-indexed, inclusive).
+// Header is rebuilt rather than copied: ABC Tools and abcjs both require
+// X, M, L, K — and L:1/8 is implicit on TheSession but mandatory here.
+// X:1 (not the source setting_id) so the snippet stands alone.
+function buildSnippetAbc(tune, setting, measures, lo, hi) {
+  const slice = measures.slice(lo - 1, hi).map(m => `|${m}`).join('') + '|';
+  const range = lo === hi ? String(lo) : `${lo}-${hi}`;
+  return [
+    'X: 1',
+    `T: ${tune.name} (m. ${range})`,
+    `R: ${tune.type}`,
+    `M: ${tune.meter || '4/4'}`,
+    'L: 1/8',
+    `K: ${modeForAbc(setting.mode || tune.mode)}`,
+    slice,
+  ].join('\n');
+}
+
+// --- Settings ------------------------------------------------------------
+
+const SETTINGS_KEY = 'session-tabs:settings';
+const DEFAULT_SETTINGS = { tempoPct: 100, autoLoop: true };
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  document.dispatchEvent(new CustomEvent('settingschanged', { detail: s }));
+}
+
+function getTempoPct() {
+  const v = loadSettings().tempoPct;
+  return Number.isFinite(v) && v > 0 ? v : 100;
+}
+
+function getAutoLoop() {
+  return loadSettings().autoLoop !== false;
+}
+
+// Push current tempo + loop preference into every open setting's synth.
+document.addEventListener('settingschanged', () => {
+  for (const rec of settingRecords.values()) {
+    if (!rec.audioApi) continue;
+    if (typeof rec.audioApi.applyTempo === 'function') rec.audioApi.applyTempo();
+    if (typeof rec.audioApi.applyLoop === 'function') rec.audioApi.applyLoop();
+  }
+});
+
+function openSettingsModal() {
+  const modal = document.getElementById('ff-modal');
+  if (modal.open) modal.close();
+
+  document.getElementById('ff-modal-title').textContent = 'Settings';
+  document.getElementById('ff-audio-pane').hidden = true;
+  document.getElementById('ff-bookmarks-pane').hidden = true;
+  document.getElementById('ff-settings-pane').hidden = false;
+
+  const cancelBtn = document.getElementById('ff-cancel');
+  const slider = document.getElementById('settings-tempo');
+  const out = document.getElementById('settings-tempo-out');
+  const autoLoop = document.getElementById('settings-autoloop');
+
+  const current = loadSettings();
+  slider.value = String(current.tempoPct);
+  out.value = `${current.tempoPct}%`;
+  autoLoop.checked = current.autoLoop !== false;
+
+  const onTempoInput = () => {
+    const pct = parseInt(slider.value, 10) || 100;
+    out.value = `${pct}%`;
+    saveSettings({ ...loadSettings(), tempoPct: pct });
+  };
+
+  const onAutoLoopChange = () => {
+    saveSettings({ ...loadSettings(), autoLoop: autoLoop.checked });
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      modal.close();
+    }
+  };
+
+  const closeModal = () => {
+    slider.removeEventListener('input', onTempoInput);
+    autoLoop.removeEventListener('change', onAutoLoopChange);
+    cancelBtn.removeEventListener('click', closeModal);
+    document.removeEventListener('keydown', onKeyDown);
+    modal.removeEventListener('close', closeModal);
+    document.getElementById('ff-settings-pane').hidden = true;
+    if (modal.open) modal.close();
+  };
+
+  slider.addEventListener('input', onTempoInput);
+  autoLoop.addEventListener('change', onAutoLoopChange);
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('close', closeModal);
+  document.addEventListener('keydown', onKeyDown);
+
+  modal.show();
 }
 
 // --- Bookmarks -----------------------------------------------------------
@@ -737,6 +1128,7 @@ function openBookmarksModal() {
   document.getElementById('ff-modal-title').textContent = 'Bookmarks';
   document.getElementById('ff-audio-pane').hidden = true;
   document.getElementById('ff-bookmarks-pane').hidden = false;
+  document.getElementById('ff-settings-pane').hidden = true;
 
   const cancelBtn = document.getElementById('ff-cancel');
   const listEl = document.getElementById('ff-bookmarks-list');
@@ -817,6 +1209,9 @@ function openBookmarksModal() {
 document.getElementById('nav-home').addEventListener('click', () => {
   history.pushState({}, '', window.location.pathname);
   ++openSeq;  // cancel any in-flight render
+  selection = null;
+  currentTune = null;
+  settingRecords = new Map();
   tuneViewEl.innerHTML = '';
   qInput.value = '';
   suggestionsEl.hidden = true;
@@ -825,6 +1220,10 @@ document.getElementById('nav-home').addEventListener('click', () => {
 
 document.getElementById('nav-bookmarks').addEventListener('click', () => {
   openBookmarksModal();
+});
+
+document.getElementById('nav-settings').addEventListener('click', () => {
+  openSettingsModal();
 });
 
 // --- Go ------------------------------------------------------------------

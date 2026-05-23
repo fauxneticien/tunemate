@@ -35,6 +35,9 @@
   <button id="nav-bookmarks" type="button" aria-label="Bookmarks" title="Bookmarks">
     <i class="fa-solid fa-bookmark"></i>
   </button>
+  <button id="nav-settings" type="button" aria-label="Settings" title="Settings">
+    <i class="fa-solid fa-cog"></i>
+  </button>
 </nav>
 <div id="build-info" class="build-info" title=""></div>
 <div id="main">
@@ -75,6 +78,17 @@
     </section>
     <section id="ff-bookmarks-pane" hidden>
       <ul id="ff-bookmarks-list" class="ff-results" role="list"></ul>
+    </section>
+    <section id="ff-settings-pane" hidden>
+      <div class="settings-row">
+        <label for="settings-tempo" class="settings-label">Tempo</label>
+        <input id="settings-tempo" type="range" min="25" max="200" step="5" value="100">
+        <output id="settings-tempo-out" for="settings-tempo" class="settings-value">100%</output>
+      </div>
+      <div class="settings-row">
+        <label for="settings-autoloop" class="settings-label">Auto-loop</label>
+        <input id="settings-autoloop" type="checkbox" checked>
+      </div>
     </section>
   </div>
 </dialog>

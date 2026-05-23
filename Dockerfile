@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
 # System deps: node for build/build_search_index.mjs, curl + tar for
-# the download-data task, ca-certs for HTTPS to GitHub/CDNs.
+# the download-session-data task, ca-certs for HTTPS to GitHub/CDNs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \

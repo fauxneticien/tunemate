@@ -2,18 +2,18 @@ version: '3'
 
 tasks:
   serve:
-    desc: Serve docs/ locally on http://localhost:8000
+    desc: Serve public/ locally on http://localhost:8000 (session-tabs at /session-tabs/)
     cmds:
-      - python3 -m http.server -d docs 8000
+      - python3 -m http.server -d public 8000
 
-  download-data:
+  download-session-data:
     desc: Download the latest TheSession-data snapshot into tmp/TheSession-data-main/
     cmds:
       - mkdir -p tmp
       - curl -L https://github.com/adactio/TheSession-data/archive/refs/heads/main.tar.gz | tar xz -C tmp
 
-  build-data:
-    desc: Regenerate docs/{meta,search-index,tunes/*}.json from CSVs in tmp/TheSession-data-main/
+  build-session-data:
+    desc: Regenerate public/session-tabs/{meta,search-index,tunes/*}.json from CSVs in tmp/TheSession-data-main/
     vars:
       LIMIT: '{{.LIMIT | default "0"}}'
     cmds:
@@ -22,7 +22,7 @@ tasks:
       - node build/build_search_index.mjs
 
   download-folkfriend-index:
-    desc: Refresh docs/plugins/folkfriend/tune-index.json from upstream (~34 MB)
+    desc: Refresh public/session-tabs/plugins/folkfriend/tune-index.json from upstream (~34 MB)
     cmds:
-      - curl -L -o docs/plugins/folkfriend/tune-index.json
+      - curl -L -o public/session-tabs/plugins/folkfriend/tune-index.json
           https://folkfriend-app-data.web.app/folkfriend-non-user-data.json

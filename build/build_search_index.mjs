@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Build a MiniSearch index from docs/search-docs.json.
+ * Build a MiniSearch index from public/session-tabs/search-docs.json.
  *
- * Output: docs/search-index.json (serialized MiniSearch).
+ * Output: public/session-tabs/search-index.json (serialized MiniSearch).
  * The intermediate search-docs.json is removed after a successful build.
  *
  *   cd build && npm install
@@ -14,7 +14,7 @@ import path from 'node:path';
 import MiniSearch from 'minisearch';
 
 const root = process.cwd();
-const outDir = path.join(root, 'docs');
+const outDir = path.join(root, 'public', 'session-tabs');
 const docsPath = path.join(outDir, 'search-docs.json');
 const outPath = path.join(outDir, 'search-index.json');
 

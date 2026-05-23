@@ -10,9 +10,9 @@ Static site that views tunes from [TheSession](https://thesession.org/), rendere
 
 ```
 task serve                       # python3 -m http.server -d docs 8000
-task download-data               # curl | tar TheSession-data into tmp/TheSession-data-main/
-task build-data                  # CSVs → docs/{meta,search-index,tunes/*}.json
-task build-data LIMIT=100        # MWE: keep only top-100 popular tunes
+task download-session-data       # curl | tar TheSession-data into tmp/TheSession-data-main/
+task build-session-data          # CSVs → docs/{meta,search-index,tunes/*}.json
+task build-session-data LIMIT=100 # MWE: keep only top-100 popular tunes
 task download-folkfriend-index   # refresh docs/plugins/folkfriend/tune-index.json (~34 MB)
 
 docker compose up --build        # same as `task serve`, port 18080:8000, with python/node/curl/task pre-installed
@@ -24,7 +24,7 @@ There are no tests, no linter, and no CI.
 
 ## Architecture
 
-### Data pipeline (two stages, run in order by `task build-data`)
+### Data pipeline (two stages, run in order by `task build-session-data`)
 
 1. `build/build_session_data.py` reads `tmp/TheSession-data-main/csv/{tunes,aliases,tune_popularity}.csv` and writes:
    - `docs/tunes/<tune_id>.json` — one file per tune, with all its settings (ABC bodies, mode, contributor, date)

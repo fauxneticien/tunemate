@@ -27,8 +27,8 @@ The repo ships pre-built `docs/meta.json`, `docs/search-index.json`, and
 [TheSession-data](https://github.com/adactio/TheSession-data) snapshot:
 
 ```
-task download-data    # curl | tar into tmp/TheSession-data-main/
-task build-data       # → docs/meta.json, docs/search-index.json, docs/tunes/*.json
+task download-session-data    # curl | tar into tmp/TheSession-data-main/
+task build-session-data       # → docs/meta.json, docs/search-index.json, docs/tunes/*.json
 ```
 
 Or without Task:
@@ -58,8 +58,8 @@ docker compose up --build
 ```
 
 The container has Python, Node, curl, and Task pre-installed, so
-`docker compose exec app task download-data`,
-`docker compose exec app task build-data`, and
+`docker compose exec app task download-session-data`,
+`docker compose exec app task build-session-data`, and
 `docker compose exec app task download-folkfriend-index`
 work the same as outside.
 

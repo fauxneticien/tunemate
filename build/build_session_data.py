@@ -3,7 +3,7 @@
 Preprocess TheSession-data CSVs into JSON for the static viewer.
 
 Inputs (default):  tmp/TheSession-data-main/csv/{tunes,aliases,tune_popularity}.csv
-Outputs (default): docs/session/{meta.json,search-docs.json,tunes/<id>.json}
+Outputs (default): public/session-tabs/{meta.json,search-docs.json,tunes/<id>.json}
 
 Use --limit N to keep only the top N popular tunes (Phase 1 MWE).
 """
@@ -73,8 +73,8 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--data", default="tmp/TheSession-data-main/csv",
                    help="dir containing tunes.csv, aliases.csv, tune_popularity.csv")
-    p.add_argument("--out", default="docs",
-                   help="output dir (becomes the GitHub Pages root)")
+    p.add_argument("--out", default="public/session-tabs",
+                   help="output dir for the session-tabs static site")
     p.add_argument("--limit", type=int, default=0,
                    help="keep only the top N popular tunes (0 = all)")
     args = p.parse_args()
